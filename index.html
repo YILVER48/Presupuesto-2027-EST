@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10263a">
+  <meta name="description" content="Portal ejecutivo para el cierre financiero y presupuestal de la empresa.">
+  <title>Cierre financiero | Portal ejecutivo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <!-- SheetJS permite leer el libro Excel directamente en el navegador. -->
+  <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true"></div>
+  <div class="app-shell">
+    <!-- Encabezado corporativo -->
+    <header class="topbar">
+      <a class="brand" href="#" id="homeLink" aria-label="Volver al inicio">
+        <img src="imagnes/logo.png" alt="Logo de la empresa">
+        <span class="brand-divider" aria-hidden="true"></span>
+        <span class="brand-copy">
+          <strong>CIERRE FINANCIERO</strong>
+          <small>Portal ejecutivo · 2027</small>
+        </span>
+      </a>
+      <div class="topbar-meta">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span>Planeación financiera</span>
+      </div>
+    </header>
+
+    <!-- Área principal: vista de inicio o contenido seleccionado -->
+    <main id="mainContent" class="main-content">
+      <section id="homeView" class="home-layout" aria-label="Inicio">
+        <div class="home-visual card">
+          <img src="imagnes/inicio.png" alt="Vista de inicio del cierre financiero">
+          <div class="visual-caption">
+            <span class="eyebrow">PLANEACIÓN · CONTROL · RESULTADOS</span>
+          </div>
+          <div class="image-index" aria-hidden="true"><span>01</span><i></i><span>03</span></div>
+        </div>
+
+        <aside class="navigation-panel" aria-label="Navegación financiera">
+          <div class="panel-heading">
+            <span class="eyebrow">CENTRO DE CONTROL</span>
+            <h2>Explora tus<br>resultados</h2>
+            <p>Accede a la información clave del cierre financiero.</p>
+          </div>
+          <nav class="action-list">
+            <button class="action-card action-budget" type="button" data-view="budget">
+              <span class="action-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M4 19.5V5.8A1.8 1.8 0 0 1 5.8 4h12.4A1.8 1.8 0 0 1 20 5.8v13.7H4Z"/><path d="M8 8h8M8 12h3M8 16h8M15 11.5v4"/></svg>
+              </span>
+              <span class="action-copy"><small>PLANIFICACIÓN ANUAL</small><strong>Presupuesto 2027</strong></span>
+              <span class="action-arrow" aria-hidden="true">↗</span>
+            </button>
+            <button class="action-card action-indicators" type="button" data-view="indicators">
+              <span class="action-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h17"/><path d="m7 15 4-4 3 2 6-7"/><circle cx="7" cy="15" r="1"/><circle cx="11" cy="11" r="1"/><circle cx="14" cy="13" r="1"/><circle cx="20" cy="6" r="1"/></svg>
+              </span>
+              <span class="action-copy"><small>DESEMPEÑO Y TENDENCIAS</small><strong>Indicadores</strong></span>
+              <span class="action-arrow" aria-hidden="true">↗</span>
+            </button>
+            <button class="action-card action-income" type="button" data-view="income">
+              <span class="action-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 3v18M17 7.5c0-1.7-2.2-3-5-3s-5 1.3-5 3 1.8 2.7 5 3.5 5 1.8 5 3.5-2.2 3-5 3-5-1.3-5-3"/></svg>
+              </span>
+              <span class="action-copy"><small>RESULTADOS DEL PERIODO</small><strong>Ingresos</strong></span>
+              <span class="action-arrow" aria-hidden="true">↗</span>
+            </button>
+          </nav>
+          <div class="panel-footnote"><span class="footnote-line"></span><span>Finanzas · Cierre anual</span></div>
+        </aside>
+      </section>
+      <section id="contentView" class="content-view" aria-live="polite" hidden></section>
+    </main>
+
+    <!-- Pie de página -->
+    <footer class="footer">
+      <span>Información financiera · Uso interno</span>
+      <span>CIERRE FINANCIERO <i aria-hidden="true">·</i> 2027</span>
+    </footer>
+  </div>
+</body>
+</html>
