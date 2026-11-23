@@ -132,6 +132,7 @@ button { font: inherit; }
 .action-card:hover { transform: translateY(-3px); filter: brightness(1.07); box-shadow: 0 12px 25px rgba(14, 36, 49, .19); }
 .action-card:focus-visible, .zoom-button:focus-visible, .back-button:focus-visible, .file-button:focus-visible { outline: 3px solid #78c0a3; outline-offset: 3px; }
 .action-budget { background: linear-gradient(120deg, #102b41, #1d4055); }
+.action-budget-2026 { background: linear-gradient(120deg, #354f69, #58718a); }
 .action-indicators { background: linear-gradient(120deg, #1a715c, #25866b); }
 .action-income { background: linear-gradient(120deg, #5c6970, #758188); }
 .action-icon { width: 40px; height: 40px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.22); border-radius: 10px; background: rgba(255,255,255,.09); }

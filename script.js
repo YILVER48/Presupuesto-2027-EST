@@ -2,9 +2,25 @@
 (() => {
   "use strict";
 
-  const WORKBOOK_URL = "PRESUPUESTO  PROYECTADO 2027.xlsx";
-  const SHEET_NAME = "PPTO 2023 BASE 2022";
-  const DISPLAY_COLUMNS = [0, 25, 26, 27];
+  const BUDGETS = {
+    budget: {
+      title: "Presupuesto 2027",
+      eyebrow: "PLANIFICACIÓN ANUAL",
+      subtitle: "Libro proyectado",
+      workbookUrl: "PRESUPUESTO  PROYECTADO 2027.xlsx",
+      sheetName: "PPTO 2023 BASE 2022",
+      displayColumns: [0, 25, 26, 27]
+    },
+    "budget-2026": {
+      title: "Presupuesto 2026",
+      eyebrow: "CIERRE ANUAL",
+      subtitle: "Libro ejecutado",
+      workbookUrl: "PRESUPUESTO EJECUTADO 2026.xlsx",
+      sheetName: "PPTO 2023 BASE 2022",
+      displayColumns: [0, 39, 40, 41],
+      headerMarker: "% CUMPLIMIENTO"
+    }
+  };
   const VIEWS = {
     indicators: {
       eyebrow: "DESEMPEÑO FINANCIERO",
@@ -90,9 +106,10 @@
   const homeView = document.getElementById("homeView");
   const contentView = document.getElementById("contentView");
   const homeLink = document.getElementById("homeLink");
-  let loadedSheetRows = null;
+  const loadedBudgetRows = new Map();
+  const loadingBudgetKeys = new Set();
+  let activeBudget = BUDGETS.budget;
   let activeImageZoom = 1;
-  let isLoadingWorkbook = false;
 
   /* Plantilla común de las vistas internas */
   function showContent(title, eyebrow, subtitle, body) {
@@ -134,7 +151,7 @@
     return widths.map((width) => Math.min(320, width));
   }
 
-  function renderSheet(rows) {
+  function renderSheet(rows, sheetName) {
     if (!rows.length || !rows.some((row) => row.some((value) => value !== ""))) {
       return '<div class="table-empty">La hoja seleccionada no contiene datos para mostrar.</div>';
     }
@@ -143,7 +160,7 @@
     const widths = getColumnWidths(rows, columnCount);
     const table = document.createElement("table");
     table.className = "budget-table";
-    table.setAttribute("aria-label", `Contenido de la hoja ${SHEET_NAME}`);
+    table.setAttribute("aria-label", `Contenido de la hoja ${sheetName}`);
     const colgroup = document.createElement("colgroup");
     widths.forEach((width) => {
       const col = document.createElement("col");
@@ -199,6 +216,17 @@
     return headerIndex;
   }
 
+  function getBudgetHeaderIndex(rows, budget) {
+    if (!budget.headerMarker) return findHeaderIndex(rows);
+    const headerIndex = rows.findIndex((row) =>
+      row.some((value) => String(value).trim() === budget.headerMarker)
+    );
+    if (headerIndex === -1) {
+      throw new Error(`No se encontró el encabezado "${budget.headerMarker}" en la hoja "${budget.sheetName}".`);
+    }
+    return headerIndex;
+  }
+
   function showWorkbookError(message) {
     const messageElement = contentView.querySelector("[data-role='sheet-message']");
     if (messageElement) {
@@ -209,17 +237,19 @@
     if (status) status.textContent = "No se pudo cargar el presupuesto.";
   }
 
-  function drawBudget(rows, sourceLabel) {
+  function drawBudget(rows, sourceLabel, budget = activeBudget) {
+    const tableContainer = contentView.querySelector("[data-role='table-container']");
+    if (!tableContainer) return;
     const tableRows = rows
-      .slice(findHeaderIndex(rows))
-      .map((row) => DISPLAY_COLUMNS.map((column) => row[column] == null ? "" : row[column]))
+      .slice(getBudgetHeaderIndex(rows, budget))
+      .map((row) => budget.displayColumns.map((column) => row[column] == null ? "" : row[column]))
       .filter((row, index) => index === 0 || row.some((value) => String(value).trim() !== ""));
-    contentView.querySelector("[data-role='table-container']").replaceChildren(renderSheet(tableRows));
+    tableContainer.replaceChildren(renderSheet(tableRows, budget.sheetName));
     const status = contentView.querySelector("[data-role='sheet-status']");
     const sheetName = document.createElement("span");
     sheetName.append("Hoja: ");
     const sheetNameStrong = document.createElement("strong");
-    sheetNameStrong.textContent = SHEET_NAME;
+    sheetNameStrong.textContent = budget.sheetName;
     sheetName.append(sheetNameStrong);
     const rowCount = document.createElement("span");
     rowCount.textContent = `${Math.max(0, tableRows.length - 1).toLocaleString("es-CO")} registros · ${sourceLabel}`;
@@ -228,14 +258,14 @@
     notice.hidden = true;
   }
 
-  async function parseWorkbook(data, sourceLabel) {
+  async function parseWorkbook(data, sourceLabel, budget = activeBudget) {
     if (!window.XLSX) {
       throw new Error("No se pudo cargar SheetJS. Verifica tu conexión a internet e inténtalo de nuevo.");
     }
     const workbook = window.XLSX.read(data, { type: "array", cellDates: true });
-    const worksheet = workbook.Sheets[SHEET_NAME];
+    const worksheet = workbook.Sheets[budget.sheetName];
     if (!worksheet) {
-      throw new Error(`El archivo no contiene la hoja "${SHEET_NAME}".`);
+      throw new Error(`El archivo no contiene la hoja "${budget.sheetName}".`);
     }
     const rows = window.XLSX.utils.sheet_to_json(worksheet, {
       header: 1,
@@ -243,31 +273,35 @@
       defval: "",
       blankrows: false
     });
-    loadedSheetRows = rows;
-    drawBudget(rows, sourceLabel);
+    getBudgetHeaderIndex(rows, budget);
+    loadedBudgetRows.set(budget, rows);
+    if (activeBudget === budget) drawBudget(rows, sourceLabel, budget);
   }
 
-  async function loadDefaultWorkbook() {
-    if (isLoadingWorkbook) return;
-    isLoadingWorkbook = true;
+  async function loadDefaultWorkbook(budget = activeBudget) {
+    if (loadingBudgetKeys.has(budget)) return;
+    loadingBudgetKeys.add(budget);
     const status = contentView.querySelector("[data-role='sheet-status']");
-    status.textContent = "Cargando archivo de presupuesto…";
+    if (activeBudget === budget && status) status.textContent = "Cargando archivo de presupuesto…";
     try {
-      const response = await fetch(WORKBOOK_URL);
+      const response = await fetch(budget.workbookUrl);
       if (!response.ok) throw new Error(`No fue posible abrir el archivo (${response.status}).`);
-      await parseWorkbook(await response.arrayBuffer(), "archivo del portal");
+      await parseWorkbook(await response.arrayBuffer(), "archivo del portal", budget);
     } catch (error) {
-      showWorkbookError(`${error.message} Si abriste esta página directamente, inicia un servidor local o selecciona el Excel desde tu equipo.`);
+      if (activeBudget === budget) {
+        showWorkbookError(`${error.message} Si abriste esta página directamente, inicia un servidor local o selecciona el Excel desde tu equipo.`);
+      }
     } finally {
-      isLoadingWorkbook = false;
+      loadingBudgetKeys.delete(budget);
     }
   }
 
-  function showBudget() {
+  function showBudget(budget = BUDGETS.budget) {
+    activeBudget = budget;
     showContent(
-      "Presupuesto 2027",
-      "PLANIFICACIÓN ANUAL",
-      `Libro proyectado · hoja ${SHEET_NAME}`,
+      budget.title,
+      budget.eyebrow,
+      `${budget.subtitle} · hoja ${budget.sheetName}`,
       {
         actions: "",
         content: `
@@ -284,13 +318,13 @@
       const [file] = event.target.files;
       if (!file) return;
       try {
-        await parseWorkbook(await file.arrayBuffer(), file.name);
+        await parseWorkbook(await file.arrayBuffer(), file.name, budget);
       } catch (error) {
-        showWorkbookError(error.message);
+        if (activeBudget === budget) showWorkbookError(error.message);
       }
     });
-    if (loadedSheetRows) drawBudget(loadedSheetRows, "archivo del portal");
-    else loadDefaultWorkbook();
+    if (loadedBudgetRows.has(budget)) drawBudget(loadedBudgetRows.get(budget), "archivo del portal", budget);
+    else loadDefaultWorkbook(budget);
   }
 
   function showImageView(view) {
@@ -461,6 +495,7 @@
     if (navigationButton) {
       const { view } = navigationButton.dataset;
       if (view === "budget") showBudget();
+      else if (view === "budget-2026") showBudget(BUDGETS["budget-2026"]);
       else if (view === "income") showVolumetry();
       else if (VIEWS[view]) showImageView(VIEWS[view]);
       return;
