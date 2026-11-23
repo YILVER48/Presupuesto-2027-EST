@@ -12,15 +12,49 @@
       subtitle: "Indicadores clave para el seguimiento del cierre.",
       image: "imagnes/indicadores.png",
       alt: "Indicadores financieros"
-    },
-    income: {
-      eyebrow: "RESULTADOS DEL PERIODO",
-      title: "Ingresos",
-      subtitle: "Resumen de ingresos de la empresa.",
-      image: "imagnes/ingresos.png",
-      alt: "Ingresos de la empresa"
     }
   };
+
+  const VOLUMETRY_ROWS = [
+    ["Certificado de Tradición Moto", "50", "135", "218", "291", "305", "378", "406", "1.783"],
+    ["Certificado de Tradición Vehículo", "123", "356", "476", "532", "647", "835", "697", "3.666"],
+    ["Duplicado Licencia Conducción Vehículo", "554", "668", "803", "829", "841", "1.043", "788", "5.526"],
+    ["Duplicado Licencia Tránsito Moto", "70", "104", "193", "321", "357", "396", "396", "1.837"],
+    ["Duplicado de Placas Moto", "20", "33", "108", "145", "170", "246", "270", "992"],
+    ["Expedición Licencia Primera Vez Moto", "1.149", "2.012", "2.828", "3.212", "2.316", "2.447", "2.514", "16.478"],
+    ["Expedición Licencia Primera Vez Vehículo", "2.144", "4.043", "4.915", "4.690", "2.876", "2.965", "2.977", "24.610"],
+    ["Inscripción Persona Natural o Jurídica", "4.808", "8.456", "8.290", "6.723", "6.731", "7.076", "6.309", "48.393"],
+    ["Matrícula Inicial Motocicleta", "2.128", "3.825", "6.778", "5.828", "5.793", "6.397", "6.847", "37.596"],
+    ["Refrendación Licencia Conducción Moto", "49", "360", "1.483", "5.785", "3.453", "2.967", "2.431", "16.528"],
+    ["Refrendación Licencia Conducción Vehículo", "3.729", "4.701", "5.749", "12.091", "13.582", "10.932", "7.833", "58.617"],
+    ["Traspaso Moto", "762", "1.600", "2.536", "2.891", "3.182", "3.881", "3.947", "18.799"],
+    ["Traspaso Vehículo", "594", "1.345", "1.412", "1.676", "1.805", "2.302", "2.259", "11.393"]
+  ];
+
+  const DEMAND_RANKING = [
+    ["1", "Refrendación Licencia Conducción Vehículo", "58.617"],
+    ["2", "Inscripción Persona Natural o Jurídica", "48.393"],
+    ["3", "Matrícula Inicial Motocicleta", "37.596"],
+    ["4", "Expedición Licencia Primera Vez Vehículo", "24.610"],
+    ["5", "Traspaso Moto", "18.799"],
+    ["6", "Refrendación Licencia Conducción Moto", "16.528"],
+    ["7", "Expedición Licencia Primera Vez Moto", "16.478"],
+    ["8", "Traspaso Vehículo", "11.393"],
+    ["9", "Duplicado Licencia Conducción Vehículo", "5.526"],
+    ["10", "Certificado Tradición Vehículo", "3.666"]
+  ];
+
+  function findVolumetryRow(name) {
+    const normalize = (value) => value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/\bde\b/g, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+    const normalizedName = normalize(name);
+    return VOLUMETRY_ROWS.find((item) => normalize(item[0]) === normalizedName);
+  }
 
   const homeView = document.getElementById("homeView");
   const contentView = document.getElementById("contentView");
@@ -101,6 +135,10 @@
     const body = document.createElement("tbody");
     rows.slice(1).forEach((row) => {
       const tr = document.createElement("tr");
+      const rowLabel = row[0] == null ? "" : String(row[0]).trim();
+      if (/^total\b/i.test(rowLabel)) {
+        tr.className = "total-row";
+      }
       for (let column = 0; column < columnCount; column += 1) {
         const td = document.createElement("td");
         td.textContent = row[column] == null ? "" : String(row[column]);
@@ -251,12 +289,148 @@
     }, { once: true });
   }
 
+  function renderDataTable(headers, rows, label) {
+    const table = document.createElement("table");
+    table.className = "data-table";
+    table.setAttribute("aria-label", label);
+
+    const thead = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+    headers.forEach((header) => {
+      const th = document.createElement("th");
+      th.scope = "col";
+      th.textContent = header;
+      headerRow.append(th);
+    });
+    thead.append(headerRow);
+    table.append(thead);
+
+    const tbody = document.createElement("tbody");
+    rows.forEach((row) => {
+      const tr = document.createElement("tr");
+      row.forEach((value, column) => {
+        const td = document.createElement("td");
+        td.textContent = value;
+        if (column === row.length - 1) td.className = "total-value";
+        tr.append(td);
+      });
+      tbody.append(tr);
+    });
+    table.append(tbody);
+    return table;
+  }
+
+  function showVolumetry() {
+    showContent(
+      "Volumetría / Ingresos",
+      "VOLUMEN DE TRÁMITES",
+      "Selecciona un trámite para consultar su comportamiento por año.",
+      {
+        actions: "",
+        content: `
+          <div class="volumetry-content">
+            <section class="demand-section" aria-labelledby="demandTitle">
+              <div class="demand-heading">
+                <div>
+                  <span class="demand-eyebrow">RANKING ACUMULADO</span>
+                  <h2 id="demandTitle">Trámites con mayor demanda</h2>
+                </div>
+                <span class="demand-period">2020 — 2026</span>
+              </div>
+              <div class="demand-grid" data-role="demand-grid"></div>
+            </section>
+            <section class="tramite-detail" data-role="tramite-detail" aria-live="polite"></section>
+          </div>`
+      }
+    );
+
+    const grid = contentView.querySelector("[data-role='demand-grid']");
+    DEMAND_RANKING.forEach(([rank, name, total]) => {
+      const row = findVolumetryRow(name);
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = `demand-card${rank === "1" ? " is-selected" : ""}`;
+      card.dataset.tramite = row ? row[0] : name;
+
+      const cardRank = document.createElement("span");
+      cardRank.className = "demand-rank";
+      cardRank.textContent = rank.padStart(2, "0");
+
+      const cardContent = document.createElement("span");
+      cardContent.className = "demand-card-content";
+      const cardTitle = document.createElement("strong");
+      cardTitle.textContent = name;
+      const cardTotal = document.createElement("b");
+      cardTotal.textContent = total;
+      const cardLabel = document.createElement("small");
+      cardLabel.textContent = "Trámites acumulados";
+      cardContent.append(cardTitle, cardTotal, cardLabel);
+      card.append(cardRank, cardContent);
+      grid.append(card);
+    });
+
+    showTramiteDetail(DEMAND_RANKING[0][1]);
+  }
+
+  function showTramiteDetail(name) {
+    const row = findVolumetryRow(name);
+    if (!row) return;
+
+    const detail = contentView.querySelector("[data-role='tramite-detail']");
+    const years = ["2020", "2021", "2022", "2023", "2024", "2025", "2026"];
+    const values = row.slice(1, 8).map((value) => Number(String(value).replaceAll(".", "")));
+    const maxValue = Math.max(...values);
+
+    detail.innerHTML = "";
+    const heading = document.createElement("div");
+    heading.className = "detail-heading";
+    const headingCopy = document.createElement("div");
+    const eyebrow = document.createElement("span");
+    eyebrow.textContent = "TRÁMITE SELECCIONADO";
+    const title = document.createElement("h2");
+    title.textContent = row[0];
+    headingCopy.append(eyebrow, title);
+    const total = document.createElement("div");
+    total.className = "detail-total";
+    total.innerHTML = `<strong>${row[8]}</strong><span>Total acumulado</span>`;
+    heading.append(headingCopy, total);
+
+    const chart = document.createElement("div");
+    chart.className = "year-chart";
+    years.forEach((year, index) => {
+      const item = document.createElement("div");
+      item.className = "year-bar";
+      const value = document.createElement("strong");
+      value.textContent = row[index + 1];
+      const track = document.createElement("div");
+      track.className = "year-bar-track";
+      const fill = document.createElement("span");
+      fill.style.height = `${Math.max(12, (values[index] / maxValue) * 100)}%`;
+      track.append(fill);
+      const label = document.createElement("small");
+      label.textContent = year;
+      item.append(value, track, label);
+      chart.append(item);
+    });
+
+    detail.append(heading, chart);
+  }
+
   /* Eventos delegados para botones de inicio, regreso y zoom */
   document.addEventListener("click", (event) => {
+    const demandCard = event.target.closest("[data-tramite]");
+    if (demandCard) {
+      document.querySelectorAll("[data-tramite]").forEach((card) => card.classList.remove("is-selected"));
+      demandCard.classList.add("is-selected");
+      showTramiteDetail(demandCard.dataset.tramite);
+      return;
+    }
+
     const navigationButton = event.target.closest("[data-view]");
     if (navigationButton) {
       const { view } = navigationButton.dataset;
       if (view === "budget") showBudget();
+      else if (view === "income") showVolumetry();
       else if (VIEWS[view]) showImageView(VIEWS[view]);
       return;
     }
